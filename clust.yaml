@@ -1,0 +1,94 @@
+cluster_name: hiclusty
+max_workers: 500
+upscaling_speed: 1.0
+idle_timeout_minutes: 10
+docker:
+   image: "us.gcr.io/ai2-israel/spikeray:spikeray-smaller"
+   container_name: "ray_container"
+   pull_before_run: true
+  #  run_options: ["--shm-size=250.00gb"]
+
+provider:
+    type: gcp
+    region: us-west1
+    availability_zone: us-west1-a
+    project_id: ai2-israel
+auth:
+    ssh_user: ray
+available_node_types:
+    head_node:
+        min_workers: 0
+        max_workers: 0
+        resources: {"CPU": 4}
+        node_config:
+            machineType: n1-highmem-4
+            tags:
+              - items: ["allow-all"]
+            disks:
+              - boot: true
+                autoDelete: true
+                type: PERSISTENT
+                initializeParams:
+                  diskSizeGb: 50
+                  sourceImage: projects/deeplearning-platform-release/global/images/family/common-cpu-debian-9
+    worker_node:
+        min_workers: 0
+        max_workers: 50 #I think this might be a bit confusing, it is possibly global. Remove this and see. Test this by setting this to be 1 or something.
+        resources: {"CPU": 50}
+        node_config:
+            machineType: n1-highmem-64
+            tags:
+              - items: ["allow-all"]
+            disks:
+              - boot: true
+                autoDelete: true
+                type: PERSISTENT
+                initializeParams:
+                  diskSizeGb: 50
+                  sourceImage: projects/deeplearning-platform-release/global/images/family/common-cpu-debian-9
+            scheduling:
+              - preemptible: false
+head_node_type: head_node
+
+
+file_mounts: {
+#    "/home/ray/dist/": "./dist",
+    "/home/ray/ai2-israel-d3744270e886.json": "./ai2-israel-d3744270e886.json",
+#    "/home/ray/DynamicActorPool.py": "./DynamicActorPool.py",
+}
+
+
+
+cluster_synced_files: []
+file_mounts_sync_continuously: False
+rsync_exclude:
+    - "**/.git"
+    - "**/.git/**"
+rsync_filter:
+    - ".gitignore"
+initialization_commands: []
+setup_commands:
+  - pip3 install /home/ray/dist/*
+head_setup_commands:
+  - sudo chown ray ~/ray_bootstrap_key.pem
+  - sudo chown ray ~/ray_bootstrap_config.yaml
+  - pip3 install google-api-python-client==1.7.8
+worker_setup_commands: []
+head_start_ray_commands:
+    - ray stop
+    - >-
+      ulimit -n 65536;
+      ray start
+      --head
+      --port=6379
+      --object-manager-port=8076
+      --autoscaling-config=~/ray_bootstrap_config.yaml
+      --object-store-memory=1000000000
+worker_start_ray_commands:
+    - ray stop
+    - >-
+      ulimit -n 65536;
+      GOOGLE_APPLICATION_CREDENTIALS=./ai2-israel-d3744270e886.json AUTOSCALER_MAX_NUM_FAILURES=9999 ray start
+      --address=$RAY_HEAD_IP:6379
+      --object-manager-port=8076
+      --object-store-memory=1000000000
