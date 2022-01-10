@@ -20,8 +20,6 @@ from google.cloud import storage
 from smart_open import open as sopen # type: ignore
 import time
 
-
-
 class Encoder(object):
     """
     A wrapper over a torch model
@@ -73,17 +71,18 @@ def process_dataset(encoder: Encoder, input_path: str, tokenizer, args):
         
         all_states = []
         output_path = input_path.replace("/text/", "/states/").replace(".jsonl.gz", ".npy")
-        with sopen(output_path, "w") as outfh:
+        with sopen(output_path, "wb") as outfh:
             for inputs in dataloader:
                 H = encoder.get_vector(inputs)
                 all_states.append(H)
 
             all_states = np.concatenate(all_states, axis = 0)
-            np.save(all_states, outfh)
+            print("saving states of shape {} in {}".format(all_states.shape, output_path))
+            np.save(outfh, all_states)
 
 @ray.remote
 def process_dataset_ray(encoder: Encoder, input_path: str, tokenizer, args):
-    return process_dataset_ray(encoder, input_path, tokenizer, args)
+    return process_dataset(encoder, input_path, tokenizer, args)
                         
 def main(args, fnames):
 
@@ -190,9 +189,12 @@ def collect_paths(directory):
     bucket = client.get_bucket("ai2i-us")
     fnames = []
 
+    i = 0
     for blob in bucket.list_blobs(prefix='SPIKE/datasets/text/{}/'.format(directory)):
         if blob.name.endswith(".jsonl.gz"):
             fnames.append("gs://ai2i-us/"+blob.name)
+            i+=1
+            if i > 5: break
     return fnames 
     
 def adaptive_dataloader(args, dataset):
