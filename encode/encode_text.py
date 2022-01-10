@@ -1,20 +1,17 @@
 import argparse
-import tqdm
 import numpy as np
 from pathlib import Path
 from smart_open import open as sopen
 import torch
 from torch.utils.data.dataloader import DataLoader
-from transformers import AutoTokenizer, BertForMaskedLM, AutoModel
+from transformers import AutoTokenizer, AutoModel
 
 from dataset_reader import TextDatasetReader, InputFeatures
 from adaptive_sampler import (
     MaxTokensBatchSampler,
     data_collator_for_adaptive_sampler,
 )
-#from subs_cleaner import clean_subs
-#from special_tokens import SpecialTokens
-#from utils import NUM_SUBS_TO_USE, SUBSTITUTES_DIR, find_ann_path, try_until_success_or_limit
+
 import ray
 from google.cloud import storage
 from smart_open import open as sopen # type: ignore
@@ -80,7 +77,7 @@ def process_dataset(encoder: Encoder, input_path: str, tokenizer, args):
             print("saving states of shape {} in {}".format(all_states.shape, output_path))
             np.save(outfh, all_states)
 
-@ray.remote
+@ray.remote(num_gpus=1)
 def process_dataset_ray(encoder: Encoder, input_path: str, tokenizer, args):
     return process_dataset(encoder, input_path, tokenizer, args)
                         
