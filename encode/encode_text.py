@@ -194,7 +194,7 @@ def collect_paths(directory):
         if blob.name.endswith(".jsonl.gz"):
             fnames.append("gs://ai2i-us/"+blob.name)
             i+=1
-            if i > 5: break
+            if i > 10: break
     return fnames 
     
 def adaptive_dataloader(args, dataset):
@@ -243,6 +243,6 @@ if __name__ == "__main__":
     print(args)
     """
     ray.shutdown()
-    ray.init(local_mode=True)
-    #ray.init(address="auto")
+    #ray.init(local_mode=True)
+    ray.init(address="auto")
     main(args, fnames)
