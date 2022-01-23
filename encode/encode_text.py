@@ -88,13 +88,9 @@ def main(args, fnames):
     encoder = FirstTokenEncoder(model)
     tasks = []
     
-    i = 0
     for fname in fnames:
         #process_dataset(encoder, dataloader,fname)
         tasks.append(process_dataset_ray.remote(encoder, fname, tokenizer, args))
-        i += 1
-        if i > 10: 
-            break
             
     start = time.time()
     results = ray.get(tasks)
@@ -186,12 +182,9 @@ def collect_paths(directory):
     bucket = client.get_bucket("ai2i-us")
     fnames = []
 
-    i = 0
     for blob in bucket.list_blobs(prefix='SPIKE/datasets/text/{}/'.format(directory)):
         if blob.name.endswith(".jsonl.gz"):
             fnames.append("gs://ai2i-us/"+blob.name)
-            i+=1
-            if i > 10: break
     return fnames 
     
 def adaptive_dataloader(args, dataset):
