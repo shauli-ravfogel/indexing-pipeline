@@ -1,8 +1,0 @@
-FROM rayproject/ray:ray-ml
-
-# run `sh ./dist.sh` (outside of docker) to get the spike deps into ./dist
-#COPY ./dist /home/ray/dist/
-RUN pip3 install /home/ray/dist/*
-RUN pip3 install smart_open[gcp] pathy[gcs]
-RUN python -m spike.spacywrapper.install_models parser_configs/en.json
-RUN python -m spike.spacywrapper.install_models parser_configs/sci.json

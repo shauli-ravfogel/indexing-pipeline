@@ -1,21 +1,16 @@
 import json
 import dataclasses
 from dataclasses import dataclass
-from typing import List, Union, Optional, Iterator, Tuple
-from pathy import Pathy
+from typing import List, Union, Optional
 import logging
-import os
-import time
 
-import torch
 from torch.utils.data.dataset import Dataset
-from transformers.data.processors.utils import DataProcessor, InputExample
+from transformers.data.processors.utils import InputExample
 from transformers.tokenization_utils import PreTrainedTokenizer
-from transformers import AutoTokenizer, BertForMaskedLM
+from transformers import AutoTokenizer
 
 #from utils import try_until_success_or_limit
 from smart_open import open as sopen # type: ignore
-import tqdm
 
 logger = logging.getLogger(__name__)
 

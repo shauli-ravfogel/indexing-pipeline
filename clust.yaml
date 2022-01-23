@@ -1,17 +1,15 @@
-cluster_name: hiclusty
+cluster_name: gpucluster
 max_workers: 500
 upscaling_speed: 1.0
 idle_timeout_minutes: 10
 docker:
-   image: "us.gcr.io/ai2-israel/spikeray:spikeray-smaller"
+   image: "rayproject/ray:latest-gpu"
    container_name: "ray_container"
-   pull_before_run: true
-  #  run_options: ["--shm-size=250.00gb"]
 
 provider:
     type: gcp
     region: us-west1
-    availability_zone: us-west1-a
+    availability_zone: us-west1-b
     project_id: ai2-israel
 auth:
     ssh_user: ray
@@ -19,7 +17,7 @@ available_node_types:
     head_node:
         min_workers: 0
         max_workers: 0
-        resources: {"CPU": 4}
+        resources: {"CPU": 4, "GPU": 1}
         node_config:
             machineType: n1-highmem-4
             tags:
@@ -30,13 +28,23 @@ available_node_types:
                 type: PERSISTENT
                 initializeParams:
                   diskSizeGb: 50
-                  sourceImage: projects/deeplearning-platform-release/global/images/family/common-cpu-debian-9
+                  sourceImage: projects/deeplearning-platform-release/global/images/family/common-cu113
+            guestAccelerators:
+              - acceleratorType: projects/ai2-israel/zones/us-west1-b/acceleratorTypes/nvidia-tesla-p100
+                acceleratorCount: 1
+            metadata:
+              items:
+                - key: install-nvidia-driver
+                  value: "True"
+            scheduling:
+              - onHostMaintenance: "terminate"
+              - automaticRestart: true
     worker_node:
         min_workers: 0
-        max_workers: 50 #I think this might be a bit confusing, it is possibly global. Remove this and see. Test this by setting this to be 1 or something.
-        resources: {"CPU": 50}
+        max_workers: 1
+        resources: {"CPU": 4, "GPU": 1}
         node_config:
-            machineType: n1-highmem-64
+            machineType: n1-highmem-4
             tags:
               - items: ["allow-all"]
             disks:
@@ -45,19 +53,28 @@ available_node_types:
                 type: PERSISTENT
                 initializeParams:
                   diskSizeGb: 50
-                  sourceImage: projects/deeplearning-platform-release/global/images/family/common-cpu-debian-9
+                  sourceImage: projects/deeplearning-platform-release/global/images/family/common-cu113
             scheduling:
               - preemptible: false
+            guestAccelerators:
+              - acceleratorType: projects/ai2-israel/zones/us-west1-b/acceleratorTypes/nvidia-tesla-p100
+                acceleratorCount: 1
+            metadata:
+              items:
+                - key: install-nvidia-driver
+                  value: "True"
+            scheduling:
+              - onHostMaintenance: "terminate"
+              - automaticRestart: true
+
 head_node_type: head_node
 
 
 file_mounts: {
-#    "/home/ray/dist/": "./dist",
     "/home/ray/ai2-israel-d3744270e886.json": "./ai2-israel-d3744270e886.json",
-#    "/home/ray/DynamicActorPool.py": "./DynamicActorPool.py",
+    "/home/ray/adaptive_sampler.py": "./encode/adaptive_sampler.py",
+    "/home/ray/dataset_reader.py": "./encode/dataset_reader.py",
 }
-
-
 
 cluster_synced_files: []
 file_mounts_sync_continuously: False
@@ -68,7 +85,11 @@ rsync_filter:
     - ".gitignore"
 initialization_commands: []
 setup_commands:
-  - pip3 install /home/ray/dist/*
+  - pip3 install google-cloud-storage
+  - pip3 install torch==1.10.1+cu113 -f https://download.pytorch.org/whl/cu113/torch_stable.html
+  - pip3 install ray
+  - pip3 install smart-open
+  - pip3 install transformers
 head_setup_commands:
   - sudo chown ray ~/ray_bootstrap_key.pem
   - sudo chown ray ~/ray_bootstrap_config.yaml
