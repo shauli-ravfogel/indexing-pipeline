@@ -1,5 +1,5 @@
 cluster_name: gpucluster
-max_workers: 500
+max_workers: 24
 upscaling_speed: 1.0
 idle_timeout_minutes: 10
 docker:
