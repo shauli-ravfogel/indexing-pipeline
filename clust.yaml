@@ -1,6 +1,6 @@
 cluster_name: gpucluster
-max_workers: 24
-upscaling_speed: 1.0
+max_workers: 100
+upscaling_speed: 2.0
 idle_timeout_minutes: 10
 docker:
    image: "rayproject/ray:latest-gpu"
@@ -27,7 +27,7 @@ available_node_types:
                 autoDelete: true
                 type: PERSISTENT
                 initializeParams:
-                  diskSizeGb: 50
+                  diskSizeGb: 100
                   sourceImage: projects/deeplearning-platform-release/global/images/family/common-cu113
             guestAccelerators:
               - acceleratorType: projects/ai2-israel/zones/us-west1-b/acceleratorTypes/nvidia-tesla-p100
@@ -40,8 +40,7 @@ available_node_types:
               - onHostMaintenance: "terminate"
               - automaticRestart: true
     worker_node:
-        min_workers: 0
-        max_workers: 1
+        min_workers: 20
         resources: {"CPU": 4, "GPU": 1}
         node_config:
             machineType: n1-highmem-4
@@ -52,7 +51,7 @@ available_node_types:
                 autoDelete: true
                 type: PERSISTENT
                 initializeParams:
-                  diskSizeGb: 50
+                  diskSizeGb: 100
                   sourceImage: projects/deeplearning-platform-release/global/images/family/common-cu113
             scheduling:
               - preemptible: false
