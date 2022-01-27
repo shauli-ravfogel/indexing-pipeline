@@ -34,31 +34,6 @@ class TextDatasetReader(Dataset):
     def __init__(
         self, input_path: str, tokenizer: PreTrainedTokenizer, cache_dir: Optional[str] = None,
     ):
-    
-        """
-        self.processor = AnnProcessor()
-        cached_features_file = os.path.join(
-            cache_dir if cache_dir is not None else "/tmp/",
-            "cached_{}_{}".format(tokenizer.__class__.__name__, os.path.basename(input_file)),
-        )
-        
-        if os.path.exists(cached_features_file):
-            start = time.time()
-            self.features = torch.load(cached_features_file)
-            logger.info(f"Loading features from cached file {cached_features_file} [took %.3f s]", time.time() - start)
-        else:
-        
-            examples = list(self.processor.get_examples(input_file))
-            if not examples:
-                self.features = []
-                return
-            self.features = convert_examples_to_features(
-                examples, tokenizer, max_length=MAX_LENGTH, padding_strategy="do_not_pad"
-            )
-            start = time.time()
-            torch.save(self.features, cached_features_file)
-            logger.info("Saving features into cached file %s [took %.3f s]", cached_features_file, time.time() - start)
-        """
         
         examples = []
         with sopen(input_path) as infh:
@@ -70,9 +45,6 @@ class TextDatasetReader(Dataset):
         self.features = convert_examples_to_features(
                 examples, tokenizer, max_length=MAX_LENGTH, padding_strategy="do_not_pad"
             )
-        #start = time.time()
-        #torch.save(self.features, cached_features_file)
-        #logger.info("Saving features into cached file %s [took %.3f s]", cached_features_file, time.time() - start)
 
     def __len__(self):
         return len(self.features)

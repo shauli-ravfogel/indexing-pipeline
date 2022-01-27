@@ -73,6 +73,7 @@ def process_dataset(encoder: Encoder, input_path: str, tokenizer, args):
     np.save(sopen(store_filename(input_path, "sent_ids"), "wb"), all_sentence_ids)
     del all_states
     del all_sentence_ids
+
     print("done with file", input_path)
 
 @ray.remote(num_gpus=1)
@@ -113,14 +114,24 @@ def initialize_models(device, args):
     assert tokenizer.vocab_size < 65535  # Saving pred_ids as np.uint16
     return tokenizer, model
 
-def collect_paths(directory):
+def collect_paths(directory, skip_done):
     client = storage.Client()
     bucket = client.get_bucket("ai2i-us")
     fnames = []
 
+    done_files = set(
+        ["gs://ai2i-us/"+blob.name
+            for blob in bucket.list_blobs(prefix='SPIKE/datasets/states/{}/'.format(directory))
+            if "sent_ids" in blob.name]
+    )
+
     for blob in bucket.list_blobs(prefix='SPIKE/datasets/text/{}/'.format(directory)):
         if blob.name.endswith(".jsonl.gz"):
-            fnames.append("gs://ai2i-us/"+blob.name)
+            filename = "gs://ai2i-us/"+blob.name
+            if skip_done and store_filename(filename, "sent_ids") in done_files:
+                continue
+            fnames.append(filename)
+    print(f"found {len(fnames)} fnames")
     return fnames
 
 def adaptive_dataloader(args, dataset):
@@ -140,10 +151,11 @@ if __name__ == "__main__":
     arg_parser.add_argument("--force_cpu", action="store_true", help="Should force cpu even when a gpu is available")
     arg_parser.add_argument("--model_name", type=str, help="huggingface model name", default="bert-base-uncased")
     arg_parser.add_argument("--fp16", action="store_true", help="If specified, use fp16.")
+    arg_parser.add_argument("--skip_done", action="store_true", help="Skip files already processed.")
     arg_parser.add_argument("--cuda_device", type=int, choices=[0, 1, 2, 3], default=0)
 
     args = arg_parser.parse_args()
-    fnames = collect_paths(args.dir)
+    fnames = collect_paths(args.dir, args.skip_done)
 
     ray.shutdown()
     ray.init(address="auto")

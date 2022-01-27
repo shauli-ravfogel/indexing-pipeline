@@ -17,9 +17,9 @@ available_node_types:
     head_node:
         min_workers: 0
         max_workers: 0
-        resources: {"CPU": 4, "GPU": 1}
+        resources: {"CPU": 16, "GPU": 1}
         node_config:
-            machineType: n1-highmem-4
+            machineType: n1-highmem-16
             tags:
               - items: ["allow-all"]
             disks:
@@ -40,7 +40,16 @@ available_node_types:
               - onHostMaintenance: "terminate"
               - automaticRestart: true
     worker_node:
-        min_workers: 20
+        min_workers: 40
+        # While I'm getting 40 machines, this is well underused. When priting `ray status` you can see that only ~18 at
+        # most working in the same time.
+        #
+        # This is either because:
+        # a. Head doesn't do a good job distributing the tasks. I think that if I change the number of GPUs Head has to
+        # 0 it won't do any encoding work and will only do the distribution work.
+        # See https://discuss.ray.io/t/can-i-not-assign-head-node-any-tasks/4794
+        # b. It is possible that the GPUs don't work because it takes time to move the data to the server, encode, store
+        # in cloud etc. And they are accualy properly utilized. Need to rule out (a) before saying it's (b).
         resources: {"CPU": 4, "GPU": 1}
         node_config:
             machineType: n1-highmem-4
