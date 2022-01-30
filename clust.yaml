@@ -17,7 +17,7 @@ available_node_types:
     head_node:
         min_workers: 0
         max_workers: 0
-        resources: {"CPU": 16, "GPU": 1}
+        resources: {"CPU": 16, "GPU": 0}
         node_config:
             machineType: n1-highmem-16
             tags:

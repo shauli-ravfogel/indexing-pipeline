@@ -69,8 +69,9 @@ def process_dataset(encoder: Encoder, input_path: str, tokenizer, args):
     all_states = np.concatenate(all_states, axis = 0)
     all_sentence_ids = np.concatenate(all_sentence_ids, axis = 0)
 
-    np.save(sopen(store_filename(input_path, "states"), "wb"), all_states)
-    np.save(sopen(store_filename(input_path, "sent_ids"), "wb"), all_sentence_ids)
+    write_states(input_path, all_states)
+    write_sent_ids(input_path, all_sentence_ids)
+    # MAYBE: is this really needed?
     del all_states
     del all_sentence_ids
 
@@ -128,7 +129,7 @@ def collect_paths(directory, skip_done):
     for blob in bucket.list_blobs(prefix='SPIKE/datasets/text/{}/'.format(directory)):
         if blob.name.endswith(".jsonl.gz"):
             filename = "gs://ai2i-us/"+blob.name
-            if skip_done and store_filename(filename, "sent_ids") in done_files:
+            if skip_done and store_filename(filename, "sent_ids", ext="txt.gz") in done_files:
                 continue
             fnames.append(filename)
     print(f"found {len(fnames)} fnames")
@@ -139,8 +140,15 @@ def adaptive_dataloader(args, dataset):
     dataloader = DataLoader(dataset, batch_size=1, sampler=sampler, collate_fn=data_collator_for_adaptive_sampler,)
     return dataloader
 
-def store_filename(input_path, object_name):
-    return input_path.replace("/text/", "/states/").replace(".jsonl.gz", f"-{object_name}.npy.gz")
+def write_states(input_path, all_states):
+    np.save(sopen(store_filename(input_path, "states"), "wb"), all_states)
+
+def write_sent_ids(input_path, all_sentence_ids):
+    with sopen(store_filename(input_path, "sent_ids", ext="txt.gz"), "w") as f:
+        f.write("\n".join(all_sentence_ids.tolist()))
+
+def store_filename(input_path, object_name, ext="npy.gz"):
+    return input_path.replace("/text/", "/states/").replace(".jsonl.gz", f"-{object_name}.{ext}")
 
 if __name__ == "__main__":
 
