@@ -69,8 +69,9 @@ def process_dataset(encoder: Encoder, input_path: str, tokenizer, args):
     all_states = np.concatenate(all_states, axis = 0)
     all_sentence_ids = np.concatenate(all_sentence_ids, axis = 0)
 
-    write_states(input_path, all_states)
-    write_sent_ids(input_path, all_sentence_ids)
+    sub_dir = args.sub_dir if args.sub_dir is not None else args.dir
+    write_states(input_path, all_states, args.dir, sub_dir)
+    write_sent_ids(input_path, all_sentence_ids, args.dir, sub_dir)
     # MAYBE: is this really needed?
     del all_states
     del all_sentence_ids
@@ -115,7 +116,7 @@ def initialize_models(device, args):
     assert tokenizer.vocab_size < 65535  # Saving pred_ids as np.uint16
     return tokenizer, model
 
-def collect_paths(directory, skip_done):
+def collect_paths(directory, skip_done, num_docs):
     client = storage.Client()
     bucket = client.get_bucket("ai2i-us")
     fnames = []
@@ -126,12 +127,18 @@ def collect_paths(directory, skip_done):
             if "sent_ids" in blob.name]
     )
 
+    i = 0
     for blob in bucket.list_blobs(prefix='SPIKE/datasets/text/{}/'.format(directory)):
         if blob.name.endswith(".jsonl.gz"):
             filename = "gs://ai2i-us/"+blob.name
+            
             if skip_done and store_filename(filename, "sent_ids", ext="txt.gz") in done_files:
                 continue
             fnames.append(filename)
+            
+            i += 1
+            if num_docs != -1 and i >= num_docs:
+                break
     print(f"found {len(fnames)} fnames")
     return fnames
 
@@ -140,15 +147,15 @@ def adaptive_dataloader(args, dataset):
     dataloader = DataLoader(dataset, batch_size=1, sampler=sampler, collate_fn=data_collator_for_adaptive_sampler,)
     return dataloader
 
-def write_states(input_path, all_states):
-    np.save(sopen(store_filename(input_path, "states"), "wb"), all_states)
+def write_states(input_path, all_states, dir, sub_dir):
+    np.save(sopen(store_filename(input_path, "states", dir, sub_dir), "wb"), all_states)
 
-def write_sent_ids(input_path, all_sentence_ids):
-    with sopen(store_filename(input_path, "sent_ids", ext="txt.gz"), "w") as f:
+def write_sent_ids(input_path, all_sentence_ids, dir, sub_dir):
+    with sopen(store_filename(input_path, "sent_ids", dir, sub_dir, ext="txt.gz"), "w") as f:
         f.write("\n".join(all_sentence_ids.tolist()))
 
-def store_filename(input_path, object_name, ext="npy.gz"):
-    return input_path.replace("/text/", "/states/").replace(".jsonl.gz", f"-{object_name}.{ext}")
+def store_filename(input_path, object_name, dir, sub_dir, ext="npy.gz"):
+    return input_path.replace("/text/", "/states/").replace(dir, sub_dir).replace(".jsonl.gz", f"-{object_name}.{ext}")
 
 if __name__ == "__main__":
 
@@ -161,9 +168,12 @@ if __name__ == "__main__":
     arg_parser.add_argument("--fp16", action="store_true", help="If specified, use fp16.")
     arg_parser.add_argument("--skip_done", action="store_true", help="Skip files already processed.")
     arg_parser.add_argument("--cuda_device", type=int, choices=[0, 1, 2, 3], default=0)
+    arg_parser.add_argument("--num_docs", type=int, default=-1, help="num of documents to consider. if -1, consider all.")
+    arg_parser.add_argument("--sub_dir", type=str, default=None,
+                            help="directory within states/ where files are saved. If none, identical to --dir.")
 
     args = arg_parser.parse_args()
-    fnames = collect_paths(args.dir, args.skip_done)
+    fnames = collect_paths(args.dir, args.skip_done, args.num_docs)
 
     ray.shutdown()
     ray.init(address="auto")
