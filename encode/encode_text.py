@@ -87,7 +87,10 @@ def main(args, fnames):
     device = torch.device(f"cuda:{args.cuda_device}" if torch.cuda.is_available() and not args.force_cpu else "cpu")
     print("device:", device)
     tokenizer, model = initialize_models(device, args)
-    encoder = FirstTokenEncoder(model)
+    if args.sent_rep == "first":
+        encoder = FirstTokenEncoder(model)
+    elif args.sent_rep == "mean":
+        encoder = MeanEncoder(model)
     tasks = []
 
     for fname in fnames:
@@ -171,7 +174,8 @@ if __name__ == "__main__":
     arg_parser.add_argument("--num_docs", type=int, default=-1, help="num of documents to consider. if -1, consider all.")
     arg_parser.add_argument("--sub_dir", type=str, default=None,
                             help="directory within states/ where files are saved. If none, identical to --dir.")
-
+    arg_parser.add_argument("--sent_rep", type=str, default="first", choices=["first","mean"],
+                            help="strategy to construct a sentence representation from the tokens representations")
     args = arg_parser.parse_args()
     fnames = collect_paths(args.dir, args.skip_done, args.num_docs)
 
