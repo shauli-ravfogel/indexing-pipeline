@@ -168,7 +168,7 @@ def write_sent_ids(input_path, all_sentence_ids, dir, sub_dir):
     with sopen(store_filename(input_path, "sent_ids", dir, sub_dir, ext="txt.gz"), "w") as f:
         f.write("\n".join(all_sentence_ids.tolist()))
 
-def store_filename(input_path, object_name, dir, sub_dir, ext="npy.gz"):
+def store_filename(input_path, object_name, dir, sub_dir, ext="npy"):
     return input_path.replace("/text/", "/states/").replace(dir, sub_dir).replace(".jsonl.gz", f"-{object_name}.{ext}")
 
 if __name__ == "__main__":
