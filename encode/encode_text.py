@@ -13,7 +13,6 @@ from adaptive_sampler import (MaxTokensBatchSampler,
                               data_collator_for_adaptive_sampler)
 from dataset_reader import InputFeatures, TextDatasetReader
 
-
 class Encoder(object):
     """
     A wrapper over a torch model
@@ -76,7 +75,7 @@ def process_dataset(encoder: Encoder, input_path: str, tokenizer, args):
         all_states.append(H.copy())
         all_sentence_ids.append(sentence_ids.copy())
 
-    all_states = np.concatenate(all_states, axis = 0)
+    all_states = np.concatenate(all_states, axis = 0).astype('float16')
     all_sentence_ids = np.concatenate(all_sentence_ids, axis = 0)
 
     sub_dir = args.sub_dir if args.sub_dir is not None else args.dir
